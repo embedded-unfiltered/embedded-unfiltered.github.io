@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PWM Timer & Frequency Calculator | Embedded Unfiltered</title>
+    <meta name="description"
+        content="Calculate STM32/AVR timer registers (ARR, CCR) for PWM generation. Visualize duty cycles and frequency relationships.">
+    <link rel="stylesheet" href="../css/main.css">
+    <link href="https://fonts.googleapis.com/css2?family=Oxanium:wght@400;600;700&display=swap" rel="stylesheet">
+    <link rel="icon" type="image/svg+xml" href="../favicon.svg">
+    <meta name="keywords"
+        content="pwm calculator, stm32 pwm, arr ccr calculation, timer frequency, duty cycle, microcontroller timer">
+    <meta property="og:title" content="PWM Timer & Frequency Calculator | Embedded Unfiltered">
+    <meta property="og:description"
+        content="Calculate STM32/AVR timer registers (ARR, CCR) for PWM generation. Visualize duty cycles and frequency relationships.">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://embedded-unfiltered.github.io/tools/pwm-calc.html">
+    <link rel="canonical" href="https://embedded-unfiltered.github.io/tools/pwm-calc.html">
+    <!-- Preload fonts to avoid FOUT if possible, though using system fonts mostly -->
+</head>
+
+<body>
+    <header>
+        <h1 class="brand-glitch">
+            <svg class="brand-logo" xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24"
+                fill="none">
+                <rect x="2" y="2" width="20" height="20" rx="4" fill="white" stroke="none" />
+                <path d="M10 9L7 12L10 15M14 9L17 12L14 15" stroke="black" stroke-width="1.5" stroke-linecap="round"
+                    stroke-linejoin="round" />
+            </svg>
+            Embedded Unfiltered
+        </h1>
+        <a href="../index.html" class="back-link">Back to Home</a>
+    </header>
+
+    <main>
+        <div class="tool-content">
+            <h1>PWM Calculator</h1>
+            <p class="tool-desc">
+                Calculate timer pre-scalers and period registers for precise PWM generation. Visualize the resulting
+                waveform and verify resolution for your target frequency.
+            </p>
+
+            <!-- 2. Main Instrument Grid -->
+            <div class="instrument-grid">
+
+                <!-- Left: Controls Panel -->
+                <div class="panel controls-panel">
+                    <span class="panel-title">Configuration</span>
+
+                    <!-- Clock Input -->
+                    <div class="input-group">
+                        <label>Timer Clock (after prescaler)</label>
+                        <div class="input-row">
+                            <input type="number" id="timerClock" value="84" step="0.1">
+                            <select id="clockUnit">
+                                <option value="MHz">MHz</option>
+                                <option value="kHz">kHz</option>
+                                <option value="Hz">Hz</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Frequency Input -->
+                    <div class="input-group">
+                        <label>Target Frequency</label>
+                        <div class="input-row">
+                            <input type="number" id="targetFreq" value="20" step="0.1">
+                            <select id="freqUnit">
+                                <option value="kHz">kHz</option>
+                                <option value="Hz">Hz</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Duty Cycle Input -->
+                    <div class="input-group" style="margin-top: var(--space-lg);">
+                        <div
+                            style="display:flex; justify-content:space-between; align-items:flex-end; margin-bottom:6px;">
+                            <label style="margin:0;">Duty Cycle</label>
+                            <span id="dutyValueDisplay" class="text-mono"
+                                style="font-size:0.85rem; color:var(--color-signal-high);">50%</span>
+                        </div>
+                        <input type="range" id="dutySlider" min="0" max="100" value="50" step="1">
+                        <div class="input-row" style="margin-top:8px;">
+                            <input type="number" id="dutyInput" value="50" min="0" max="100" step="0.1">
+                            <span
+                                style="font-family:var(--font-mono); color:var(--color-text-secondary); padding:8px 12px; border:1px solid var(--color-border-subtle); border-radius:var(--radius-sm); background:var(--color-bg-input); font-size:0.9rem;">%</span>
+                        </div>
+                    </div>
+
+                </div>
+
+                <!-- Right: Visualization & Results -->
+                <div class="viz-panel">
+
+                    <!-- Hero Visualization -->
+                    <div>
+                        <span class="panel-title" style="margin-bottom:8px; display:inline-block;">Signal
+                            Analyzer</span>
+                        <div class="scope-container">
+                            <canvas id="pwmWaveform"></canvas>
+                        </div>
+                    </div>
+
+                    <!-- Results Output -->
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <span class="stat-label">ARR (Period)</span>
+                            <span id="arrCounts" class="stat-value">0</span>
+                            <span class="stat-label" style="font-size:0.65rem; margin-top:2px;">Counts</span>
+                        </div>
+                        <div class="stat-card" style="border-left-color: var(--color-signal-high);">
+                            <span class="stat-label">CCR (Pulse)</span>
+                            <span id="ccrCounts" class="stat-value">0</span>
+                            <span class="stat-label" style="font-size:0.65rem; margin-top:2px;">Counts</span>
+                        </div>
+                        <div class="stat-card" style="border-left-color: var(--color-text-tertiary);">
+                            <span class="stat-label">Resolution</span>
+                            <span id="resolution" class="stat-value">0.0</span>
+                            <span class="stat-label" style="font-size:0.65rem; margin-top:2px;">Bits</span>
+                        </div>
+                    </div>
+
+                    <!-- Footer Notes -->
+                    <div class="notes-section">
+                        <p><strong>Note:</strong> Calculation assumes <strong>Up-Counting Mode</strong> where
+                            <code>ARR = (TimerFreq / TargetFreq) - 1</code>.
+                        </p>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </main>
+
+    <footer>
+        <div class="footer-content">
+            <div class="footer-left">
+                <div class="footer-row">
+                    <span>&copy; 2026 <span
+                            style="font-family: 'Oxanium', sans-serif; font-weight: 600; letter-spacing: 0.1em; color: var(--color-signal-high);">EMBEDDED
+                            UNFILTERED</span> • ALL RIGHTS RESERVED</span>
+                </div>
+                <div class="footer-row">
+                    <span class="footer-item">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M12 2L2 7l10 5 10-5-10-5z" />
+                            <path d="M2 17l10 5 10-5" />
+                            <path d="M2 12l10 5 10-5" />
+                        </svg>
+                        REVISION 1.0.0
+                    </span>
+                    <span class="footer-item">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+                            <line x1="16" y1="2" x2="16" y2="6" />
+                            <line x1="8" y1="2" x2="8" y2="6" />
+                            <line x1="3" y1="10" x2="21" y2="10" />
+                        </svg>
+                        LAST UPDATED: JAN 2026
+                    </span>
+                </div>
+            </div>
+            <div class="footer-right">
+                <a href="https://www.linkedin.com/in/pradeep-kumar-ap/" target="_blank" class="footer-link">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"
+                        fill="currentColor">
+                        <path
+                            d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 22.227.792 23 1.771 23h20.451C23.2 23 24 22.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z" />
+                    </svg>
+                    Connect on LinkedIn
+                </a>
+            </div>
+        </div>
+    </footer>
+
+    <script src="../js/pwm-calc.js"></script>
+</body>
+
+</html>

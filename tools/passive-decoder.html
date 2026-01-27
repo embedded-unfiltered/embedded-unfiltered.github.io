@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Passive Component Decoder | Embedded Unfiltered</title>
+    <meta name="description"
+        content="Professional offline decoder for SMD Resistors (EIA-96), Color Bands, Capacitors (EIA), and Inductors.">
+    <link rel="stylesheet" href="../css/main.css">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Oxanium:wght@400;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
+        rel="stylesheet">
+    <link rel="icon" type="image/svg+xml" href="../favicon.svg">
+    <meta name="keywords"
+        content="resistor color code, smd resistor decoder, capacitor code, inductor color code, eia-96 decoder, passive components">
+    <meta property="og:title" content="Passive Component Decoder | Embedded Unfiltered">
+    <meta property="og:description"
+        content="Professional offline decoder for SMD Resistors (EIA-96), Color Bands, Capacitors (EIA), and Inductors.">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://embedded-unfiltered.github.io/tools/passive-decoder.html">
+    <link rel="canonical" href="https://embedded-unfiltered.github.io/tools/passive-decoder.html">
+    <style>
+        .tool-container {
+            max-width: 900px;
+            margin: 0 auto;
+            width: 100%;
+        }
+
+        /* Tab Navigation */
+        .tab-nav {
+            display: flex;
+            gap: 2px;
+            margin-bottom: 0;
+            border-bottom: 1px solid var(--color-border-subtle);
+        }
+
+        .tab-btn {
+            padding: 12px 24px;
+            background: var(--color-bg-panel);
+            border: 1px solid transparent;
+            border-bottom: none;
+            color: var(--color-text-secondary);
+            font-weight: 600;
+            cursor: pointer;
+            border-radius: var(--radius-md) var(--radius-md) 0 0;
+            transition: all var(--duration-fast);
+            position: relative;
+            top: 1px;
+        }
+
+        .tab-btn:hover {
+            color: var(--color-text-primary);
+            background: rgba(255, 255, 255, 0.03);
+        }
+
+        .tab-btn.active {
+            color: var(--color-signal-high);
+            background: var(--color-bg-panel);
+            border-color: var(--color-border-subtle);
+            border-bottom-color: var(--color-bg-panel);
+            z-index: 2;
+        }
+
+        /* Mode Panels */
+        .decoder-panel {
+            background: var(--color-bg-panel);
+            border: 1px solid var(--color-border-subtle);
+            border-radius: 0 0 var(--radius-md) var(--radius-md);
+            padding: 32px;
+            min-height: 400px;
+            display: none;
+            /* Hidden by default */
+        }
+
+        .decoder-panel.active {
+            display: block;
+            animation: fadeIn 0.2s ease-out;
+        }
+
+        /* Visual Component Representation */
+        .component-viz {
+            height: 120px;
+            background: var(--color-bg-viz);
+            border: 1px solid var(--color-border-subtle);
+            border-radius: var(--radius-md);
+            margin: 24px 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* Result styling */
+        .result-large {
+            font-family: var(--font-mono);
+            font-size: 2rem;
+            color: var(--color-signal-high);
+            font-weight: 600;
+            text-align: center;
+            margin-bottom: 8px;
+        }
+
+        .result-meta {
+            text-align: center;
+            color: var(--color-text-secondary);
+            font-size: 0.9rem;
+        }
+
+        /* Band Selector */
+        .band-selector {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin-top: 24px;
+        }
+
+        .band-row {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .color-swatch {
+            width: 32px;
+            height: 32px;
+            border-radius: 4px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(4px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <header>
+        <h1 class="brand-glitch">
+            <svg class="brand-logo" xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24"
+                fill="none">
+                <rect x="2" y="2" width="20" height="20" rx="4" fill="white" stroke="none" />
+                <path d="M10 9L7 12L10 15M14 9L17 12L14 15" stroke="black" stroke-width="1.5" stroke-linecap="round"
+                    stroke-linejoin="round" />
+            </svg>
+            Embedded Unfiltered
+        </h1>
+        <a href="../index.html" class="back-link">Back to Home</a>
+    </header>
+
+    <main style="padding: 24px;">
+        <div class="tool-container">
+            <div style="margin-bottom: 24px;">
+                <h1>Passive Component Decoder</h1>
+                <p class="text-muted">Unified decoder for Resistors (SMD/THT), Capacitors, and Inductors.</p>
+            </div>
+
+            <!-- Tab Navigation -->
+            <div class="tab-nav">
+                <button class="tab-btn active" data-tab="smd">SMD Resistor</button>
+                <button class="tab-btn" data-tab="bands">Color Bands</button>
+                <button class="tab-btn" data-tab="cap">Capacitor</button>
+                <button class="tab-btn" data-tab="ind">Inductor</button>
+            </div>
+
+            <!-- Tab 1: SMD Resistor -->
+            <div id="panel-smd" class="decoder-panel active">
+                <div class="input-group">
+                    <label>Enter SMD Code</label>
+                    <input type="text" id="smdInput" class="input-field" placeholder="e.g. 103, 4R7, 01C, 1002"
+                        style="font-size:1.2rem; text-transform:uppercase;">
+                    <div class="text-small text-muted" style="margin-top:8px;">Supports 3-digit, 4-digit, EIA-96 logic.
+                    </div>
+                </div>
+
+                <div class="component-viz">
+                    <!-- SMD Chip Visualization -->
+                    <div
+                        style="width:160px; height:80px; background:#1a1a1a; border-radius:4px; position:relative; box-shadow:0 4px 10px rgba(0,0,0,0.5);">
+                        <!-- Terminals -->
+                        <div
+                            style="position:absolute; left:0; top:0; bottom:0; width:20px; background:#c0c0c0; border-radius:4px 0 0 4px;">
+                        </div>
+                        <div
+                            style="position:absolute; right:0; top:0; bottom:0; width:20px; background:#c0c0c0; border-radius:0 4px 4px 0;">
+                        </div>
+                        <!-- Text -->
+                        <div id="smdVizText"
+                            style="position:absolute; top:50%; left:50%; transform:translate(-50%, -50%); color:#ddd; font-family:var(--font-mono); font-weight:bold; font-size:1.5rem;">
+                            ---</div>
+                    </div>
+                </div>
+
+                <div class="result-box" style="margin-top:0;">
+                    <div class="result-large" id="smdResult">-- Ω</div>
+                    <div class="result-meta" id="smdMeta">Waiting for input...</div>
+                </div>
+            </div>
+
+            <!-- Tab 2: Color Bands -->
+            <div id="panel-bands" class="decoder-panel">
+                <div class="control-group">
+                    <label>Number of Bands</label>
+                    <div class="radio-group" style="flex-direction:row; gap:16px;">
+                        <label><input type="radio" name="bandCount" value="4" checked> 4 Band</label>
+                        <label><input type="radio" name="bandCount" value="5"> 5 Band</label>
+                        <label><input type="radio" name="bandCount" value="6"> 6 Band</label>
+                    </div>
+                </div>
+
+                <div class="component-viz">
+                    <!-- THT Resistor Viz -->
+                    <div
+                        style="width:240px; height:60px; background:#d2b48c; border-radius:30px; position:relative; box-shadow:inset 0 -4px 10px rgba(0,0,0,0.2);">
+                        <!-- Wire Leads -->
+                        <div style="position:absolute; left:-40px; top:28px; width:40px; height:4px; background:#aaa;">
+                        </div>
+                        <div style="position:absolute; right:-40px; top:28px; width:40px; height:4px; background:#aaa;">
+                        </div>
+
+                        <!-- Bands container -->
+                        <div id="bandVizContainer"
+                            style="display:flex; justify-content:space-evenly; width:100%; padding:0 30px; height:100%;">
+                            <!-- Bands injected by JS -->
+                        </div>
+                    </div>
+                </div>
+
+                <div class="band-selectors" id="bandSelectors">
+                    <!-- Band dropdowns injected by JS -->
+                </div>
+
+                <div class="result-box">
+                    <div class="result-large" id="bandResult">-- Ω</div>
+                    <div class="result-meta" id="bandMeta">Tolerance: --</div>
+                </div>
+            </div>
+
+            <!-- Tab 3: Capacitor -->
+            <div id="panel-cap" class="decoder-panel">
+                <div class="input-group">
+                    <label>Enter Capacitor Code</label>
+                    <input type="text" id="capInput" class="input-field" placeholder="e.g. 104, 22p, 4n7, 106A"
+                        style="font-size:1.2rem; text-transform:uppercase;">
+                </div>
+
+                <div class="component-viz">
+                    <!-- Ceramic Cap Viz -->
+                    <div
+                        style="width:80px; height:80px; background:#d69e2e; border-radius:50%; border:2px solid #b7791f; position:relative; display:flex; align-items:center; justify-content:center;">
+                        <div id="capVizText" style="font-family:var(--font-mono); font-weight:bold; color:#333;">---
+                        </div>
+                        <!-- Legs -->
+                        <div
+                            style="position:absolute; bottom:-40px; left:25px; width:4px; height:40px; background:#aaa; z-index:-1;">
+                        </div>
+                        <div
+                            style="position:absolute; bottom:-40px; right:25px; width:4px; height:40px; background:#aaa; z-index:-1;">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="result-box" style="margin-top:0;">
+                    <div class="result-large" id="capResult">-- F</div>
+                    <div class="result-meta" id="capMeta">Voltage Rating: --</div>
+                    <div class="result-meta text-warning" id="capWarning" style="display:none; margin-top:8px;">Warning
+                        message</div>
+                </div>
+            </div>
+
+            <!-- Tab 4: Inductor -->
+            <div id="panel-ind" class="decoder-panel">
+                <!-- Similar structure to Resistor but simpler -->
+                <div class="input-group">
+                    <label>Enter Inductor Code</label>
+                    <input type="text" id="indInput" class="input-field" placeholder="e.g. 101, 4R7, 100"
+                        style="font-size:1.2rem; text-transform:uppercase;">
+                </div>
+
+                <div class="result-box" style="margin-top:24px;">
+                    <div class="result-large" id="indResult">-- H</div>
+                    <div class="result-meta" id="indMeta">Waiting for input...</div>
+                </div>
+
+                <div class="notes-section" style="margin-top:24px;">
+                    <strong>Note:</strong> Inductors can look like resistors. If in doubt, measure with an LCR meter.
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer>
+        <div class="footer-content">
+            <div class="footer-left">
+                <div class="footer-row">
+                    <span>&copy; 2026 <span
+                            style="font-family: 'Orbitron', sans-serif; font-weight: 700; letter-spacing: 0.1em; color: var(--color-signal-high);">EMBEDDED
+                            UNFILTERED</span> • ALL RIGHTS RESERVED</span>
+                </div>
+                <div class="footer-row">
+                    <span class="footer-item">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M12 2L2 7l10 5 10-5-10-5z" />
+                            <path d="M2 17l10 5 10-5" />
+                            <path d="M2 12l10 5 10-5" />
+                        </svg>
+                        REVISION 1.0.0
+                    </span>
+                    <span class="footer-item">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+                            <line x1="16" y1="2" x2="16" y2="6" />
+                            <line x1="8" y1="2" x2="8" y2="6" />
+                            <line x1="3" y1="10" x2="21" y2="10" />
+                        </svg>
+                        LAST UPDATED: JAN 2026
+                    </span>
+                </div>
+            </div>
+            <div class="footer-right">
+                <a href="https://www.linkedin.com/in/pradeep-kumar-ap/" target="_blank" class="footer-link">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"
+                        fill="currentColor">
+                        <path
+                            d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 22.227.792 23 1.771 23h20.451C23.2 23 24 22.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z" />
+                    </svg>
+                    Connect on LinkedIn
+                </a>
+            </div>
+        </div>
+    </footer>
+
+    <script src="../js/passive-decoder.js"></script>
+</body>
+
+</html>

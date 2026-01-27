@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Voltage Divider Calculator - Embedded Unfiltered</title>
+    <link rel="stylesheet" href="../css/main.css">
+    <meta name="description"
+        content="Calculate output voltage and resistor values for voltage dividers. Essential for ADC input scaling and level shifting in embedded circuits.">
+    <meta name="keywords"
+        content="voltage divider calculator, resistor divider, vout calculation, adc input scaling, level shifter">
+    <meta property="og:title" content="Voltage Divider Calculator | Embedded Unfiltered">
+    <meta property="og:description"
+        content="Calculate output voltage and resistor values for voltage dividers. Essential for ADC input scaling and level shifting in embedded circuits.">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://embedded-unfiltered.github.io/tools/voltage-divider.html">
+    <link rel="canonical" href="https://embedded-unfiltered.github.io/tools/voltage-divider.html">
+    <link rel="icon" type="image/svg+xml" href="../favicon.svg">
+    <style>
+        /* Specific viz styles */
+        .voltage-viz {
+            display: flex;
+            align-items: flex-end;
+            justify-content: center;
+            gap: 60px;
+            /* Increased gap */
+            height: 220px;
+            border-bottom: 1px solid var(--color-border-subtle);
+            margin: 30px 0;
+            padding-bottom: 20px;
+        }
+
+        .v-bar-group {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 80px;
+            height: 100%;
+            justify-content: flex-end;
+            position: relative;
+        }
+
+        /* Container track for the bar */
+        .v-track {
+            width: 100%;
+            flex: 1;
+            /* Fill remaining height */
+            background: rgba(255, 255, 255, 0.05);
+            /* Subtle dark track */
+            border: 1px solid var(--color-border-subtle);
+            border-radius: 4px;
+            display: flex;
+            align-items: flex-end;
+            /* Grow from bottom */
+            padding: 2px;
+            /* Inner spacing */
+            margin-bottom: 8px;
+        }
+
+        .v-bar {
+            width: 100%;
+            background: var(--color-accent-primary);
+            border-radius: 2px;
+            transition: height 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+            /* Bouncy/fluid fill */
+            min-height: 0;
+        }
+
+        .v-label {
+            font-size: 0.8rem;
+            color: var(--color-text-secondary);
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .v-value {
+            font-family: 'Oxanium', monospace;
+            font-weight: 600;
+            margin-bottom: 12px;
+            border: 1px solid var(--color-border-subtle);
+            background: var(--color-bg-input);
+            padding: 4px 8px;
+            border-radius: 4px;
+            color: var(--color-signal-high);
+            font-size: 0.9rem;
+            min-width: 60px;
+            text-align: center;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+    </style>
+</head>
+
+<body>
+    <header>
+        <h1>Embedded Unfiltered</h1>
+        <a href="../index.html" class="back-link">← Back to Tools</a>
+    </header>
+
+    <main>
+        <div class="tool-container">
+            <h2>Voltage Divider Calculator</h2>
+            <p class="tool-desc">
+                Calculate output voltage or find resistor values from standard E-series (E12/E24/E96).
+            </p>
+
+            <div class="input-group">
+                <label>Calculation Mode</label>
+                <select id="modeSelect">
+                    <option value="vout">Calculate Vout (have R1, R2)</option>
+                    <option value="r2">Calculate R2 (have Vin, Vout, R1)</option>
+                    <option value="r1">Calculate R1 (have Vin, Vout, R2)</option>
+                </select>
+            </div>
+
+            <!-- Visualization -->
+            <div class="voltage-viz">
+                <div class="v-bar-group">
+                    <span class="v-value" id="dispVin">5.00V</span>
+                    <div class="v-track">
+                        <div class="v-bar" id="barVin"
+                            style="height: 100%; opacity: 0.3; background-color: var(--color-text-secondary);"></div>
+                    </div>
+                    <span class="v-label">Vin</span>
+                </div>
+                <div class="v-bar-group">
+                    <span class="v-value" id="dispVout">3.33V</span>
+                    <div class="v-track">
+                        <div class="v-bar" id="barVout" style="height: 66%;"></div>
+                    </div>
+                    <span class="v-label">Vout</span>
+                </div>
+            </div>
+
+            <div class="input-group">
+                <label>Input Voltage (Vin)</label>
+                <input type="number" id="vin" placeholder="e.g. 5.0" value="5.0">
+            </div>
+
+            <div class="input-group" id="group_output_voltage">
+                <label>Output Voltage (Vout)</label>
+                <input type="number" id="vout" placeholder="e.g. 3.3">
+            </div>
+
+            <div class="input-group" id="group_r1">
+                <label>Resistor R1 (Top)</label>
+                <input type="number" id="r1" placeholder="Ohms">
+            </div>
+
+            <div class="input-group" id="group_r2">
+                <label>Resistor R2 (Bottom)</label>
+                <input type="number" id="r2" placeholder="Ohms">
+            </div>
+
+            <div class="input-group">
+                <label>Use E-Series Standard Values</label>
+                <select id="series">
+                    <option value="exact">Exact (No rounding)</option>
+                    <option value="E12">E12 (10%)</option>
+                    <option value="E24">E24 (5%)</option>
+                    <option value="E96">E96 (1%)</option>
+                </select>
+            </div>
+
+            <div class="result-box">
+                <div class="result-item">
+                    <span class="result-label">Result:</span>
+                    <span id="resultMain" class="result-value">0</span>
+                </div>
+                <div class="result-item">
+                    <span class="result-label">Actual Vout:</span>
+                    <span id="actualVout" class="result-value">0 V</span>
+                </div>
+                <div class="result-item">
+                    <span class="result-label">Current Draw:</span>
+                    <span id="currentDraw" class="result-value">0 mA</span>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer>
+        Embedded Unfiltered – Practical tools for embedded engineers
+    </footer>
+
+    <script src="../js/voltage-divider.js"></script>
+</body>
+
+</html>

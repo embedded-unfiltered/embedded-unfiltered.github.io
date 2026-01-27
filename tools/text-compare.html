@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Text Comparator (Diff Tool) | Embedded Unfiltered</title>
+    <meta name="description"
+        content="Deterministic text and log comparator for embedded firmware engineers. Byte-aware diff with line ending visualization and hex view.">
+    <link rel="stylesheet" href="../css/main.css">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Oxanium:wght@400;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
+        rel="stylesheet">
+    <link rel="icon" type="image/svg+xml" href="../favicon.svg">
+    <meta name="keywords"
+        content="text diff tool, log comparator, hex diff, compare text files, embedded log analysis, whitespace diff">
+    <meta property="og:title" content="Text Comparator (Diff Tool) | Embedded Unfiltered">
+    <meta property="og:description"
+        content="Deterministic text and log comparator for embedded firmware engineers. Byte-aware diff with line ending visualization and hex view.">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://embedded-unfiltered.github.io/tools/text-compare.html">
+    <link rel="canonical" href="https://embedded-unfiltered.github.io/tools/text-compare.html">
+    <style>
+        .diff-container {
+            display: grid;
+            grid-template-rows: auto 1fr;
+            gap: var(--space-md);
+            height: calc(100vh - 200px);
+            min-height: 600px;
+        }
+
+        .diff-toolbar {
+            display: flex;
+            gap: var(--space-md);
+            align-items: center;
+            flex-wrap: wrap;
+            padding: var(--space-md);
+            background: var(--color-bg-panel);
+            border: 1px solid var(--color-border-subtle);
+            border-radius: var(--radius-md);
+        }
+
+        .diff-status {
+            padding: 8px 16px;
+            border-radius: var(--radius-sm);
+            font-weight: 600;
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .status-match {
+            background: rgba(63, 185, 80, 0.15);
+            color: var(--color-success);
+            border: 1px solid var(--color-success);
+        }
+
+        .status-diff {
+            background: rgba(248, 81, 73, 0.15);
+            color: var(--color-error);
+            border: 1px solid var(--color-error);
+        }
+
+        .options-group {
+            display: flex;
+            flex-direction: row;
+            flex-wrap: wrap;
+            gap: 16px;
+            align-items: center;
+        }
+
+        .checkbox-label {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            cursor: pointer;
+            white-space: nowrap;
+        }
+
+        .diff-editors {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: var(--space-md);
+            height: 100%;
+            overflow: hidden;
+        }
+
+        .editor-pane {
+            display: flex;
+            flex-direction: column;
+            background: var(--color-bg-panel);
+            border: 1px solid var(--color-border-subtle);
+            border-radius: var(--radius-md);
+            overflow: hidden;
+        }
+
+        .editor-header {
+            padding: 8px 12px;
+            background: rgba(255, 255, 255, 0.03);
+            border-bottom: 1px solid var(--color-border-subtle);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.8rem;
+            color: var(--color-text-secondary);
+        }
+
+        .editor-stats {
+            display: flex;
+            gap: 8px;
+            font-family: var(--font-mono);
+            font-size: 0.75rem;
+            color: var(--color-text-tertiary);
+        }
+
+        .editor-pane-inner {
+            display: flex;
+            flex: 1;
+            overflow-y: auto;
+            /* The ONLY vertical scrollbar */
+            overflow-x: hidden;
+            position: relative;
+            align-items: flex-start;
+            /* Ensure content starts at top */
+            background: var(--color-bg-input);
+        }
+
+        .line-gutter {
+            flex: 0 0 auto;
+            width: 45px;
+            min-width: 45px;
+            background: var(--color-bg-panel);
+            border-right: 1px solid var(--color-border-subtle);
+            color: var(--color-text-tertiary);
+            font-family: "JetBrains Mono", monospace;
+            font-size: 13px;
+            line-height: 20px;
+            text-align: right;
+            padding: 10px 0;
+            user-select: none;
+            cursor: default;
+            min-height: 100%;
+            /* Grow with content */
+            height: auto;
+        }
+
+        .editor-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            min-width: 0;
+            min-height: 100%;
+            position: relative;
+            /* Context for absolute backdrop */
+        }
+
+        :root {
+            --editor-line-height: 21px;
+            /* Explicit integer */
+            --editor-font-size: 14px;
+            --editor-font-family: "JetBrains Mono", Consolas, Monaco, "Courier New", monospace;
+        }
+
+        .diff-backdrop {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 0;
+            padding: 10px 0;
+            /* Matches .raw-text top/bottom padding */
+            display: block;
+        }
+
+        /* Backdrop Highlighting Rows */
+        .backdrop-row {
+            width: 100%;
+            height: var(--editor-line-height);
+            box-sizing: border-box;
+        }
+
+        .backdrop-row.highlight-rem {
+            background-color: rgba(248, 81, 73, 0.3);
+            border-left: 3px solid var(--color-error);
+        }
+
+        .backdrop-row.highlight-add {
+            background-color: rgba(63, 185, 80, 0.3);
+            border-left: 3px solid var(--color-success);
+        }
+
+        .raw-text {
+            padding: 10px 12px;
+            /* 10px vertical padding is CRITICAL to match backdrop */
+            position: relative;
+            z-index: 2;
+            background-color: transparent !important;
+
+            font-family: var(--editor-font-family);
+            font-size: var(--editor-font-size);
+            line-height: var(--editor-line-height);
+            min-height: 100%;
+            /* Ensure it covers backdrop */
+            box-sizing: border-box;
+            white-space: pre;
+            overflow-x: auto;
+            /* Handle long lines */
+            overflow-y: hidden;
+            /* Height controlled by JS autoExpand */
+        }
+
+        /* Gutter Highlight Classes for Edit Mode */
+        .line-number.highlight-rem {
+            color: var(--color-error);
+            background-color: rgba(248, 81, 73, 0.1);
+        }
+
+        .line-number.highlight-add {
+            color: var(--color-success);
+            background-color: rgba(63, 185, 80, 0.1);
+        }
+
+        .diff-view {
+            padding: 10px 0;
+        }
+
+        /* Diff Highlighting */
+        .diff-line {
+            display: block;
+            width: 100%;
+            height: var(--editor-line-height);
+            line-height: var(--editor-line-height);
+            padding: 0 12px;
+            box-sizing: border-box;
+            font-family: var(--editor-font-family);
+            font-size: var(--editor-font-size);
+        }
+
+        .line-number {
+            height: var(--editor-line-height);
+            line-height: var(--editor-line-height);
+            padding-right: 8px;
+            box-sizing: border-box;
+            width: 100%;
+            font-family: var(--editor-font-family);
+            font-size: var(--editor-font-size);
+        }
+
+        /* Row-based Diff View Layout */
+        .diff-row {
+            display: flex;
+            width: 100%;
+            height: var(--editor-line-height);
+            /* Fixed height */
+            align-items: center;
+        }
+
+        .diff-gutter-cell {
+            flex: 0 0 auto;
+            width: 45px;
+            min-width: 45px;
+            text-align: right;
+            padding-right: 8px;
+            color: var(--color-text-tertiary);
+            user-select: none;
+            cursor: default;
+            font-family: var(--editor-font-family);
+            font-size: var(--editor-font-size);
+            line-height: var(--editor-line-height);
+            box-sizing: border-box;
+            background-color: var(--color-bg-panel);
+            /* Match gutter bg */
+            border-right: 1px solid var(--color-border-subtle);
+        }
+
+        .diff-text-cell {
+            flex: 1;
+            padding: 0 12px;
+            font-family: "JetBrains Mono", monospace;
+            font-size: 13px;
+            line-height: 20px;
+            color: var(--color-text-primary);
+            white-space: pre;
+            overflow: hidden;
+            box-sizing: border-box;
+            position: relative;
+            /* For potential markers */
+        }
+
+        /* Highlighting - Applies to the ROW */
+        .diff-row.diff-added {
+            background-color: rgba(63, 185, 80, 0.2);
+            /* Increased visibility */
+        }
+
+        .diff-row.diff-removed {
+            background-color: rgba(248, 81, 73, 0.2);
+            /* Increased visibility */
+        }
+
+        /* Essential: Make gutter background transparent on highlighted rows so row tint shows through */
+        .diff-row.diff-added .diff-gutter-cell,
+        .diff-row.diff-removed .diff-gutter-cell {
+            background-color: transparent;
+        }
+
+        /* Solid Indicator Bar */
+        /* We place it on the text cell so it's "before textline" but after gutter */
+        .diff-row.diff-added .diff-text-cell {
+            border-left: 3px solid var(--color-success);
+            padding-left: 9px;
+            /* Adjust padding to account for border (12 - 3) */
+        }
+
+        .diff-row.diff-removed .diff-text-cell {
+            border-left: 3px solid var(--color-error);
+            padding-left: 9px;
+        }
+
+        /* Gutter Text Highlight */
+        .diff-row.diff-added .diff-gutter-cell {
+            color: var(--color-success);
+        }
+
+        .diff-row.diff-removed .diff-gutter-cell {
+            color: var(--color-error);
+        }
+
+        /* First Diff Emphasis */
+        .diff-row.first-diff {
+            /* slightly stronger or different indicator? */
+            /* User said "Slightly stronger emphasis allowed" */
+        }
+
+        .diff-row.first-diff.diff-added {
+            background-color: rgba(63, 185, 80, 0.25);
+        }
+
+        .diff-row.first-diff.diff-removed {
+            background-color: rgba(248, 81, 73, 0.25);
+        }
+    </style>
+</head>
+
+<body>
+    <header>
+        <h1 class="brand-glitch">
+            <svg class="brand-logo" xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24"
+                fill="none">
+                <rect x="2" y="2" width="20" height="20" rx="4" fill="white" stroke="none" />
+                <path d="M10 9L7 12L10 15M14 9L17 12L14 15" stroke="black" stroke-width="1.5" stroke-linecap="round"
+                    stroke-linejoin="round" />
+            </svg>
+            Embedded Unfiltered
+        </h1>
+        <a href="../index.html" class="back-link">Back to Home</a>
+    </header>
+
+    <main style="max-width: 1400px;"> <!-- Wider layout for diff -->
+        <div class="tool-content">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+                <h1>Text Comparator (Diff Tool)</h1>
+            </div>
+            <p class="tool-desc">
+                Compare logs, strings, and payloads byte-accurately to catch invisible differences.
+            </p>
+
+            <div class="diff-container">
+                <div class="diff-toolbar">
+                    <div id="statusIndicator" class="diff-status status-match">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="20 6 9 17 4 12"></polyline>
+                        </svg>
+                        Exact Match
+                    </div>
+
+                    <div class="options-group">
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="ignoreWhitespace"> Ignore leading/trailing whitespace
+                        </label>
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="ignoreEmptyLines"> Ignore empty lines
+                        </label>
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="normalizeEndings" checked> Normalize CRLF
+                        </label>
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="showInvisibles" checked> Show \n \r
+                        </label>
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="hexMode"> Hex View
+                        </label>
+                    </div>
+
+                    <span id="hexLegend"
+                        style="display:none; font-size:0.8rem; color:var(--color-text-secondary); margin-left:var(--space-md);">
+                        Hex view: UTF-8 byte representation
+                    </span>
+
+                    <div style="flex:1"></div>
+
+                    <button class="footer-link" onclick="copyDiffs()">Copy Differences</button>
+                    <button class="footer-link" onclick="clearAll()">Clear</button>
+                </div>
+
+                <div class="diff-editors">
+                    <!-- Editor A -->
+                    <div class="editor-pane">
+                        <div class="editor-header">
+                            <strong>Text A (Reference)</strong>
+                            <div class="editor-stats" id="statsA">
+                                <span id="charsA">0</span> chars |
+                                <span id="bytesA">0</span> bytes |
+                                <span id="linesA">1</span> lines |
+                                <span id="endingA">None</span> |
+                                <span id="trailingA">No Trailing WS</span>
+                            </div>
+                        </div>
+                        <div class="editor-pane-inner" id="scrollA">
+                            <div id="gutterA" class="line-gutter"></div>
+                            <div class="editor-content">
+                                <div id="backdropA" class="diff-backdrop"></div>
+                                <textarea id="inputA" class="raw-text" placeholder="Paste text here..."
+                                    spellcheck="false"></textarea>
+                                <div id="viewA" class="diff-view" style="display:none;"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Editor B -->
+                    <div class="editor-pane">
+                        <div class="editor-header">
+                            <strong>Text B (Comparison)</strong>
+                            <div class="editor-stats" id="statsB">
+                                <span id="charsB">0</span> chars |
+                                <span id="bytesB">0</span> bytes |
+                                <span id="linesB">1</span> lines |
+                                <span id="endingB">None</span> |
+                                <span id="trailingB">No Trailing WS</span>
+                            </div>
+                        </div>
+                        <div class="editor-pane-inner" id="scrollB">
+                            <div id="gutterB" class="line-gutter"></div>
+                            <div class="editor-content">
+                                <div id="backdropB" class="diff-backdrop"></div>
+                                <textarea id="inputB" class="raw-text" placeholder="Paste text here..."
+                                    spellcheck="false"></textarea>
+                                <div id="viewB" class="diff-view" style="display:none;"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <footer>
+        <div class="footer-content">
+            <div class="footer-left">
+                <div class="footer-row">
+                    <span>&copy; 2026 EMBEDDED UNFILTERED</span>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script src="../js/text-compare.js"></script>
+</body>
+
+</html>

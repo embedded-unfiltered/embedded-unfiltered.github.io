@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Logic Gate & K-Map Solver | Embedded Unfiltered</title>
+    <meta name="description"
+        content="Debug boolean logic for firmware. Optimize C conditions, visualize Karnaugh Maps, and reduce code size.">
+    <link rel="stylesheet" href="../css/main.css">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Oxanium:wght@400;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
+        rel="stylesheet">
+    <link rel="icon" type="image/svg+xml" href="../favicon.svg">
+    <meta name="keywords"
+        content="logic gate solver, karnaugh map, boolean simplification, k-map solver, digital logic, quine-mccluskey">
+    <meta property="og:title" content="Logic Gate & K-Map Solver | Embedded Unfiltered">
+    <meta property="og:description"
+        content="Debug boolean logic for firmware. Optimize C conditions, visualize Karnaugh Maps, and reduce code size.">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://embedded-unfiltered.github.io/tools/logic-solver.html">
+    <link rel="canonical" href="https://embedded-unfiltered.github.io/tools/logic-solver.html">
+    <style>
+        .tool-grid {
+            display: grid;
+            grid-template-columns: 350px 1fr 350px;
+            gap: var(--space-md);
+            height: calc(100vh - 140px);
+            min-height: 700px;
+        }
+
+        @media (max-width: 1200px) {
+            .tool-grid {
+                grid-template-columns: 320px 1fr;
+                height: auto;
+            }
+
+            .panel:nth-child(3) {
+                grid-column: 1 / -1;
+            }
+        }
+
+        @media (max-width: 800px) {
+            .tool-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Panel & Tabs */
+        .panel {
+            background: var(--color-bg-panel);
+            border: 1px solid var(--color-border-subtle);
+            border-radius: var(--radius-md);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .panel-header {
+            padding: 0;
+            background: rgba(255, 255, 255, 0.03);
+            border-bottom: 1px solid var(--color-border-subtle);
+            display: flex;
+        }
+
+        .tab-btn {
+            background: transparent;
+            border: none;
+            color: var(--color-text-secondary);
+            padding: 12px 16px;
+            cursor: pointer;
+            font-weight: 600;
+            border-right: 1px solid var(--color-border-subtle);
+            transition: all 0.2s;
+            flex: 1;
+        }
+
+        .tab-btn:hover {
+            color: var(--color-text-primary);
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .tab-btn.active {
+            color: var(--color-signal-high);
+            background: var(--color-bg-panel);
+            border-bottom: 2px solid var(--color-signal-high);
+        }
+
+        .panel-content {
+            padding: 16px;
+            overflow-y: auto;
+            flex: 1;
+        }
+
+        /* Truth Table */
+        .truth-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-family: var(--font-mono);
+            font-size: 0.9rem;
+        }
+
+        .truth-table th,
+        .truth-table td {
+            text-align: center;
+            padding: 6px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .truth-table th {
+            color: var(--color-text-secondary);
+            font-weight: 600;
+        }
+
+        .truth-row:hover {
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .truth-cell-out {
+            cursor: pointer;
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid var(--color-border-subtle);
+            width: 40px;
+            transition: all 0.1s;
+        }
+
+        .truth-cell-out.active {
+            background: var(--color-signal-high);
+            color: #000;
+            font-weight: bold;
+            box-shadow: 0 0 10px var(--color-signal-high);
+            border-color: var(--color-signal-high);
+        }
+
+        /* Visualization Area */
+        .kmap-container {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--color-bg-viz);
+            border-radius: 4px;
+            padding: 24px;
+            position: relative;
+        }
+
+        .kmap-cell {
+            fill: transparent;
+            stroke: rgba(255, 255, 255, 0.1);
+            stroke-width: 1px;
+            transition: fill 0.2s;
+            cursor: pointer;
+        }
+
+        .kmap-cell:hover {
+            fill: rgba(255, 255, 255, 0.05);
+        }
+
+        .kmap-cell.active-1 {
+            fill: rgba(0, 255, 127, 0.2);
+        }
+
+        /* Green tint */
+
+        .kmap-group {
+            fill: none;
+            stroke-width: 3px;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+            pointer-events: none;
+            opacity: 0.8;
+            transition: all 0.3s;
+        }
+
+        .kmap-label {
+            font-family: var(--font-mono);
+            font-size: 14px;
+            fill: var(--color-text-secondary);
+            text-anchor: middle;
+            dominant-baseline: middle;
+        }
+
+        /* Result Code */
+        .code-block {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 12px;
+            border-radius: 4px;
+            font-family: var(--font-mono);
+            font-size: 0.9rem;
+            color: var(--color-text-primary);
+            border: 1px solid var(--color-border-subtle);
+            margin-bottom: 16px;
+            position: relative;
+        }
+
+        .stat-badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 4px 8px;
+            border-radius: 4px;
+            background: rgba(255, 255, 255, 0.05);
+            color: var(--color-text-secondary);
+            font-size: 0.8rem;
+            margin-right: 8px;
+            margin-bottom: 8px;
+        }
+
+        .stat-badge strong {
+            color: var(--color-text-primary);
+            margin-left: 6px;
+        }
+    </style>
+</head>
+
+<body>
+    <header>
+        <h1 class="brand-glitch">
+            <svg class="brand-logo" xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24"
+                fill="none">
+                <rect x="2" y="2" width="20" height="20" rx="4" fill="white" stroke="none" />
+                <path d="M10 9L7 12L10 15M14 9L17 12L14 15" stroke="black" stroke-width="1.5" stroke-linecap="round"
+                    stroke-linejoin="round" />
+            </svg>
+            Embedded Unfiltered
+        </h1>
+        <a href="../index.html" class="back-link">Back to Home</a>
+    </header>
+
+    <main class="tool-content" style="max-width: 1600px; margin: 0 auto; width: 100%; padding: 24px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 16px;">
+            <h1>Logic Solver & K-Map</h1>
+        </div>
+
+        <div class="tool-grid">
+            <!-- Left: Inputs -->
+            <aside class="panel">
+                <div class="panel-header">
+                    <button class="tab-btn active" data-mode="table">Truth Table</button>
+                    <button class="tab-btn" data-mode="expr">Expression</button>
+                </div>
+
+                <div class="panel-content">
+                    <!-- Setup Controls -->
+                    <div id="controls-table">
+                        <div class="control-group">
+                            <label class="control-label">Variables</label>
+                            <div class="radio-group">
+                                <label><input type="radio" name="vars" value="2"> 2 (A,B)</label>
+                                <label><input type="radio" name="vars" value="3" checked> 3 (A..C)</label>
+                                <label><input type="radio" name="vars" value="4"> 4 (A..D)</label>
+                            </div>
+                        </div>
+                        <div class="control-group">
+                            <label class="control-label">Truth Table (Click Output to Toggle)</label>
+                            <div
+                                style="max-height: 400px; overflow-y:auto; border:1px solid var(--color-border-subtle); border-radius:4px;">
+                                <table class="truth-table" id="truthTable">
+                                    <!-- Injected JS -->
+                                </table>
+                            </div>
+                            <div style="display:flex; gap:8px; margin-top:8px;">
+                                <button class="btn btn-sm" id="btnResetTable">Reset All 0</button>
+                                <button class="btn btn-sm" id="btnSetTable">Set All 1</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="controls-expr" style="display:none;">
+                        <div class="control-group">
+                            <label class="control-label">Information</label>
+                            <p class="text-small text-muted">Enter boolean expression. Use <code>A</code>,
+                                <code>B</code>, <code>C</code>, <code>D</code>.
+                            </p>
+                            <ul class="text-small text-muted" style="padding-left:16px;">
+                                <li><strong>AND</strong>: <code>&&</code>, <code>*</code>, <code>&</code></li>
+                                <li><strong>OR</strong>: <code>||</code>, <code>+</code>, <code>|</code></li>
+                                <li><strong>NOT</strong>: <code>!</code>, <code>~</code></li>
+                                <li><strong>XOR</strong>: <code>^</code></li>
+                            </ul>
+                        </div>
+                        <div class="control-group">
+                            <label class="control-label">Boolean Expression</label>
+                            <textarea id="exprInput" class="input-field" placeholder="(A && !B) || C"
+                                style="height:100px; font-family:var(--font-mono); font-size:1.1rem;"></textarea>
+                            <div id="exprError" class="text-small text-warning"
+                                style="min-height:20px; margin-top:4px;"></div>
+                        </div>
+                    </div>
+                </div>
+            </aside>
+
+            <!-- Center: K-Map Viz -->
+            <section class="panel">
+                <div class="panel-header">
+                    <span style="padding:12px 16px; font-weight:600;">Karnaugh Map Visualization</span>
+                </div>
+                <div class="kmap-container" id="kmapContainer">
+                    <!-- SVG Injected Here -->
+                </div>
+                <div style="padding:12px; background:rgba(0,0,0,0.2); border-top:1px solid var(--color-border-subtle);">
+                    <div style="display:flex; justify-content:center; gap:24px;">
+                        <span
+                            style="display:flex; align-items:center; font-size:0.8rem; color:var(--color-text-secondary);">
+                            <span
+                                style="width:12px; height:12px; background:#d4af37; opacity:0.8; margin-right:8px; border-radius:2px;"></span>
+                            Prime Implicant
+                        </span>
+                        <span
+                            style="display:flex; align-items:center; font-size:0.8rem; color:var(--color-text-secondary);">
+                            <span
+                                style="width:12px; height:12px; border:1px solid rgba(255,255,255,0.3); margin-right:8px; border-radius:2px;"></span>
+                            Uncovered
+                        </span>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Right: Output -->
+            <aside class="panel">
+                <div class="panel-header">
+                    <span style="padding:12px 16px; font-weight:600;">Simplified Logic</span>
+                </div>
+                <div class="panel-content">
+
+                    <div class="control-group">
+                        <label class="control-label">Minimization Stats</label>
+                        <div style="display:flex; flex-wrap:wrap;">
+                            <span class="stat-badge">Inputs: <strong id="statInputs">3</strong></span>
+                            <span class="stat-badge">Minterms: <strong id="statMinterms">0</strong></span>
+                            <span class="stat-badge">Groups: <strong id="statGroups">0</strong></span>
+                        </div>
+                    </div>
+
+                    <div class="control-group">
+                        <label class="control-label">Simplified Boolean</label>
+                        <div class="code-block" id="outBoolean"
+                            style="color:var(--color-signal-high); font-size:1.1rem; font-weight:600;">
+                            0
+                        </div>
+                    </div>
+
+                    <div class="control-group">
+                        <label class="control-label">Optimized C Code</label>
+                        <div class="code-block" style="padding:0;">
+                            <textarea id="outC" class="code-output"
+                                style="height:120px; border:none; background:transparent; width:100%;" readonly>if (0) {
+    output = 1;
+}</textarea>
+                        </div>
+                    </div>
+
+                    <div class="control-group">
+                        <label class="control-label">Bitwise Macro</label>
+                        <div class="code-block" id="outMacro" style="font-size:0.8rem; color:#aaa;">
+                            #define LOGIC_CHECK(A,B,C) (0)
+                        </div>
+                    </div>
+
+                </div>
+            </aside>
+        </div>
+    </main>
+
+    <footer>
+        <!-- Standard Footer -->
+        <div class="footer-content">
+            <div class="footer-left">
+                <div class="footer-row">
+                    <span>&copy; 2026 <span
+                            style="font-family: 'Orbitron', sans-serif; font-weight: 700; letter-spacing: 0.1em; color: var(--color-signal-high);">EMBEDDED
+                            UNFILTERED</span> • ALL RIGHTS RESERVED</span>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script src="../js/logic-solver.js"></script>
+</body>
+
+</html>

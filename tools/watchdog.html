@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Watchdog Timer Calculator | Embedded Unfiltered</title>
+    <meta name="description" content="Calculate Internal or Window Watchdog (IWDG/WWDG) timeout duration. Verify safe refresh windows for STM32 and other MCUs.">
+    <meta name="keywords" content="watchdog calculator, iwdg calculator, wwdg timeout, stm32 watchdog, embedded wdt, lsi clock">
+    <meta property="og:title" content="Watchdog Timer Calculator | Embedded Unfiltered">
+    <meta property="og:description" content="Calculate Internal or Window Watchdog (IWDG/WWDG) timeout duration. Verify safe refresh windows for STM32 and other MCUs.">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://embedded-unfiltered.github.io/tools/watchdog.html">
+    <link rel="canonical" href="https://embedded-unfiltered.github.io/tools/watchdog.html">
+    <link rel="stylesheet" href="../css/main.css">
+    <link href="https://fonts.googleapis.com/css2?family=Oxanium:wght@400;600;700&display=swap" rel="stylesheet">
+    <link rel="icon" type="image/svg+xml" href="../favicon.svg">
+</head>
+
+<body>
+    <header>
+        <h1>Embedded Unfiltered</h1>
+        <a href="../index.html" class="back-link">← Back to Tools</a>
+    </header>
+
+    <main>
+        <div class="tool-container">
+            <h2>Watchdog Timeout Calculator</h2>
+            <p class="text-small" style="margin-bottom:20px;">
+                Calculate Internal or Window Watchdog (IWDG/WWDG) timeout duration.
+            </p>
+
+            <div class="input-group">
+                <label>LSI / Watchdog Clock (kHz)</label>
+                <input type="number" id="lsi" value="32">
+            </div>
+
+            <div class="input-group">
+                <label>Prescaler</label>
+                <select id="prescaler">
+                    <option value="4">4</option>
+                    <option value="8">8</option>
+                    <option value="16">16</option>
+                    <option value="32">32</option>
+                    <option value="64">64</option>
+                    <option value="128">128</option>
+                    <option value="256">256</option>
+                </select>
+            </div>
+
+            <div class="input-group">
+                <label>Reload Value (RLR) / Count</label>
+                <input type="number" id="reload" value="4095" max="4095">
+                <p class="text-small" style="color:var(--color-text-secondary);">Example: 12-bit max is 4095.</p>
+            </div>
+
+            <div class="result-box">
+                <div class="result-item">
+                    <span class="result-label">Timeout (Exact):</span>
+                    <span id="timeout" class="result-value">0 ms</span>
+                </div>
+                <div class="result-item">
+                    <span class="result-label">Min Timeout (RLR=0):</span>
+                    <span id="minTimeout" class="result-value">0 ms</span>
+                </div>
+                <div class="result-item">
+                    <span class="result-label">Max Timeout (RLR=Max):</span>
+                    <span id="maxTimeout" class="result-value">0 ms</span>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer>
+        Embedded Unfiltered – Practical tools for embedded engineers
+    </footer>
+
+    <script src="../js/watchdog.js"></script>
+</body>
+
+</html>

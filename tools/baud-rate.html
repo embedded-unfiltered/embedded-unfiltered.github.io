@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Baud Rate Error Calculator for Embedded Systems | Embedded Unfiltered</title>
+    <meta name="description"
+        content="Validate UART baud rate reliability. Calculate baud error percentage based on PCLK, baud rate, and oversampling configuration.">
+    <link rel="stylesheet" href="../css/main.css">
+    <link href="https://fonts.googleapis.com/css2?family=Oxanium:wght@400;600;700&display=swap" rel="stylesheet">
+    <link rel="icon" type="image/svg+xml" href="../favicon.svg">
+    <meta name="keywords"
+        content="UART, baud rate, serial communication, baud error, PCLK, embedded systems, logic analyzer">
+    <meta property="og:title" content="Baud Rate Error Calculator | Embedded Unfiltered">
+    <meta property="og:description"
+        content="Validate UART baud rate reliability. Calculate baud error percentage based on PCLK, baud rate, and oversampling configuration.">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://embedded-unfiltered.github.io/tools/baud-rate.html">
+    <link rel="canonical" href="https://embedded-unfiltered.github.io/tools/baud-rate.html">
+    <style>
+        .result-box {
+            padding: var(--space-md);
+            border-radius: var(--radius-md);
+            border: 1px solid var(--color-border-subtle);
+            background: var(--color-bg-panel);
+            margin-top: var(--space-md);
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: var(--radius-sm);
+            font-weight: bold;
+            font-size: 0.8rem;
+            text-transform: uppercase;
+        }
+
+        .status-ok {
+            background: rgba(46, 160, 67, 0.2);
+            color: #3fb950;
+            border: 1px solid rgba(46, 160, 67, 0.4);
+        }
+
+        .status-warn {
+            background: rgba(210, 153, 34, 0.2);
+            color: #d29922;
+            border: 1px solid rgba(210, 153, 34, 0.4);
+        }
+
+        .status-fail {
+            background: rgba(248, 81, 73, 0.2);
+            color: #f85149;
+            border: 1px solid rgba(248, 81, 73, 0.4);
+        }
+
+        .viz-bar-container {
+            height: 6px;
+            background: var(--color-bg-input);
+            border-radius: 3px;
+            margin-top: 8px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .viz-bar {
+            height: 100%;
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+            /* Start from center */
+            transition: width 0.3s, background-color 0.3s;
+        }
+    </style>
+</head>
+
+<body>
+    <header>
+        <h1 class="brand-glitch">
+            <svg class="brand-logo" xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24"
+                fill="none">
+                <rect x="2" y="2" width="20" height="20" rx="4" fill="white" stroke="none" />
+                <path d="M10 9L7 12L10 15M14 9L17 12L14 15" stroke="black" stroke-width="1.5" stroke-linecap="round"
+                    stroke-linejoin="round" />
+            </svg>
+            Embedded Unfiltered
+        </h1>
+        <a href="../index.html" class="back-link">Back to Home</a>
+    </header>
+
+    <main>
+        <div class="tool-content">
+            <h1>Baud Rate Error Calculator</h1>
+            <p class="tool-desc">
+                Validate serial communication timing reliability. Calculate baud error percentage to prevent UART frame
+                errors.
+            </p>
+
+            <div class="instrument-grid">
+
+                <!-- INPUTS -->
+                <div class="panel controls-panel">
+                    <h2>Configuration</h2>
+
+                    <div class="input-group">
+                        <label>Peripheral Clock (PCLK)</label>
+                        <div class="input-row">
+                            <input type="number" id="inClk" value="16000000" placeholder="e.g. 16000000">
+                            <select id="uClk">
+                                <option value="Hz" selected>Hz</option>
+                                <option value="MHz">MHz</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="input-group">
+                        <label>Target Baud Rate</label>
+                        <div class="input-row">
+                            <input type="number" id="inBaud" value="115200" list="baudList">
+                            <datalist id="baudList">
+                                <option value="9600">
+                                <option value="19200">
+                                <option value="38400">
+                                <option value="57600">
+                                <option value="115200">
+                                <option value="230400">
+                                <option value="460800">
+                                <option value="921600">
+                            </datalist>
+                            <span class="text-mono">bps</span>
+                        </div>
+                    </div>
+
+                    <div class="input-group">
+                        <label>UART Hardware Mode</label>
+                        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:8px;">
+                            <div>
+                                <span
+                                    style="font-size:0.8em; display:block; margin-bottom:4px; color:var(--color-text-secondary);">Oversampling</span>
+                                <select id="selOver">
+                                    <option value="16" selected>16×</option>
+                                    <option value="8">8×</option>
+                                </select>
+                            </div>
+                            <div>
+                                <span
+                                    style="font-size:0.8em; display:block; margin-bottom:4px; color:var(--color-text-secondary);">Divider
+                                    Type</span>
+                                <select id="selDivType">
+                                    <option value="int">Integer</option>
+                                    <option value="frac4">Fractional (4-bit)</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+
+                <!-- RESULTS -->
+                <div class="viz-panel">
+                    <h2>Timing Analysis</h2>
+
+                    <div class="result-box">
+                        <div style="display:flex; justify-content:space-between; align-items:center;">
+                            <span class="stat-label">Baud Error</span>
+                            <span id="resStatus" class="status-badge status-ok">OK</span>
+                        </div>
+                        <div style="text-align:center; margin:16px 0;">
+                            <span id="resError"
+                                style="font-size:2.5rem; font-weight:bold; font-family:var(--font-mono);">0.00%</span>
+                            <div class="viz-bar-container">
+                                <div id="visError" class="viz-bar" style="width:0%; background:var(--color-success);">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="stats-grid" style="margin-top:20px; grid-template-columns:1fr 1fr;">
+                            <div>
+                                <span class="stat-label">Calculated Baud</span>
+                                <span id="resActual" class="stat-value" style="font-size:1rem;">115200</span>
+                            </div>
+                            <div>
+                                <span class="stat-label">Divider Value</span>
+                                <span id="resDiv" class="stat-value" style="font-size:1rem;">8.68</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="notes-section" style="margin-top:20px;">
+                        <strong>Reliability Guide:</strong><br>
+                        • <strong>&lt; 2%</strong>: Generally reliable for standard UART.<br>
+                        • <strong>2% - 5%</strong>: Risky. May work short-term but fail with temperature drift or long
+                        cables.<br>
+                        • <strong>&gt; 5%</strong>: Likely to fail (Frame Errors).
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </main>
+
+    <footer>
+        <div class="footer-content">
+            <div class="footer-left">
+                <div class="footer-row">
+                    <span>&copy; 2026 <span
+                            style="font-family: 'Oxanium', sans-serif; font-weight: 600; letter-spacing: 0.1em; color: var(--color-signal-high);">EMBEDDED
+                            UNFILTERED</span> • ALL RIGHTS RESERVED</span>
+                </div>
+                <div class="footer-row">
+                    <span class="footer-item">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M12 2L2 7l10 5 10-5-10-5z" />
+                            <path d="M2 17l10 5 10-5" />
+                            <path d="M2 12l10 5 10-5" />
+                        </svg>
+                        REVISION 1.0.0
+                    </span>
+                    <span class="footer-item">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+                            <line x1="16" y1="2" x2="16" y2="6" />
+                            <line x1="8" y1="2" x2="8" y2="6" />
+                            <line x1="3" y1="10" x2="21" y2="10" />
+                        </svg>
+                        LAST UPDATED: JAN 2026
+                    </span>
+                </div>
+            </div>
+            <div class="footer-right">
+                <a href="https://www.linkedin.com/in/pradeep-kumar-ap/" target="_blank" class="footer-link">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"
+                        fill="currentColor">
+                        <path
+                            d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 22.227.792 23 1.771 23h20.451C23.2 23 24 22.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z" />
+                    </svg>
+                    Connect on LinkedIn
+                </a>
+            </div>
+        </div>
+    </footer>
+
+    <script src="../js/baud-rate.js"></script>
+</body>
+
+</html>

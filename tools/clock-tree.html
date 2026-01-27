@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MCU Clock Tree Calculator for Embedded Systems | Embedded Unfiltered</title>
+    <meta name="description"
+        content="Calculate PLL multipliers and prescalers for microcontroller clock trees. Visualize signal path from Oscillator to SYSCLK and AHB/APB buses.">
+    <link rel="stylesheet" href="../css/main.css">
+    <link href="https://fonts.googleapis.com/css2?family=Oxanium:wght@400;600;700&display=swap" rel="stylesheet">
+    <link rel="icon" type="image/svg+xml" href="../favicon.svg">
+    <meta name="keywords"
+        content="MCU clock tree, PLL calculator, system clock, prescaler configuration, AHB APB divider, clock domain">
+    <meta property="og:title" content="MCU Clock Tree Calculator | Embedded Unfiltered">
+    <meta property="og:description"
+        content="Calculate PLL multipliers and prescalers for microcontroller clock trees. Visualize signal path from Oscillator to SYSCLK and AHB/APB buses.">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://embedded-unfiltered.github.io/tools/clock-tree.html">
+    <link rel="canonical" href="https://embedded-unfiltered.github.io/tools/clock-tree.html">
+    <style>
+        /* Flowchart-like styling */
+        .clock-chain {
+            display: flex;
+            flex-direction: column;
+            gap: var(--space-lg);
+            position: relative;
+        }
+
+        /* Connecting lines logic (simplified CSS) */
+        .chain-step {
+            display: flex;
+            align-items: center;
+            gap: var(--space-md);
+            background: var(--color-bg-panel);
+            border: 1px solid var(--color-border-subtle);
+            padding: var(--space-md);
+            border-radius: var(--radius-md);
+            position: relative;
+        }
+
+        .chain-step::before {
+            content: "↓";
+            position: absolute;
+            top: -25px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: var(--color-text-tertiary);
+            font-weight: bold;
+            font-size: 1.2rem;
+            display: none;
+            /* flexible logic below */
+        }
+
+        .chain-step:not(:first-child)::before {
+            display: block;
+        }
+
+        .freq-badge {
+            background: rgba(88, 166, 255, 0.1);
+            color: var(--color-signal-high);
+            padding: 4px 8px;
+            border-radius: var(--radius-sm);
+            font-family: var(--font-mono);
+            font-weight: bold;
+            min-width: 80px;
+            text-align: center;
+        }
+
+        .calc-group {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            flex: 1;
+        }
+
+        .calc-label {
+            font-size: 0.75rem;
+            color: var(--color-text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .warning-box {
+            border-left: 3px solid var(--color-warning);
+            background: rgba(210, 153, 34, 0.1);
+            padding: 8px;
+            font-size: 0.85rem;
+            color: var(--color-warning);
+            margin-top: 4px;
+            display: none;
+        }
+
+        .error-box {
+            border-left: 3px solid var(--color-error);
+            background: rgba(248, 81, 73, 0.1);
+            padding: 8px;
+            font-size: 0.85rem;
+            color: var(--color-error);
+            margin-top: 4px;
+            display: none;
+        }
+
+        /* Desktop specific: Left-to-Right flow for huge screens? 
+           Vertical usually safer for mobile. Keeping vertical. */
+    </style>
+</head>
+
+<body>
+    <header>
+        <h1 class="brand-glitch">
+            <svg class="brand-logo" xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24"
+                fill="none">
+                <rect x="2" y="2" width="20" height="20" rx="4" fill="white" stroke="none" />
+                <path d="M10 9L7 12L10 15M14 9L17 12L14 15" stroke="black" stroke-width="1.5" stroke-linecap="round"
+                    stroke-linejoin="round" />
+            </svg>
+            Embedded Unfiltered
+        </h1>
+        <a href="../index.html" class="back-link">Back to Home</a>
+    </header>
+
+    <main>
+        <div class="tool-content">
+            <h1>MCU Clock Tree Calculator</h1>
+            <p class="tool-desc">
+                Simulate generic PLL, prescalers, and bus frequency distributions. Visualize the clock path from
+                oscillator to peripherals.
+            </p>
+
+            <div class="instrument-grid">
+
+                <!-- CONTROLS & FLOW -->
+                <div class="panel" style="grid-column: 1 / -1;"> <!-- Full width -->
+
+                    <div class="clock-chain">
+
+                        <!-- 1. SOURCE SELECT -->
+                        <div class="chain-step">
+                            <div class="calc-group" style="flex:0 0 150px;">
+                                <span class="calc-label">Source Frequency</span>
+                                <div class="input-row">
+                                    <input type="number" id="inHsi" value="16" style="width:100%;">
+                                    <span class="text-mono">MHz</span>
+                                </div>
+                                <span class="calc-label" style="text-align:center; padding:4px;">OR</span>
+                                <div class="input-row">
+                                    <input type="number" id="inHse" value="8" style="width:100%;">
+                                    <span class="text-mono">MHz</span>
+                                </div>
+                            </div>
+                            <div class="calc-group" style="align-items:center; justify-content:center;">
+                                <span class="calc-label">MUX</span>
+                                <select id="selSource" style="width:100px;">
+                                    <option value="HSI" selected>HSI (Int)</option>
+                                    <option value="HSE">HSE (Ext)</option>
+                                </select>
+                            </div>
+                            <div class="calc-group" style="align-items:center; justify-content:center;">
+                                <span class="calc-label">PLL Input</span>
+                                <div id="outPllIn" class="freq-badge">16 MHz</div>
+                            </div>
+                        </div>
+
+                        <!-- 2. PLL CONFIG -->
+                        <div class="chain-step">
+                            <div style="flex:1;">
+                                <span class="panel-title">PLL Configuration</span>
+                                <div style="display:flex; gap:12px; flex-wrap:wrap; align-items:flex-end;">
+                                    <div>
+                                        <label style="font-size:0.8em">Input Div (/M)</label>
+                                        <input type="number" id="pllM" value="1" min="1" step="1" style="width:60px;">
+                                    </div>
+                                    <div style="font-size:1.2rem; color:var(--color-text-tertiary);">×</div>
+                                    <div>
+                                        <label style="font-size:0.8em">Multiplier (xN)</label>
+                                        <input type="number" id="pllN" value="336" min="1" step="1" style="width:70px;">
+                                    </div>
+                                    <div style="font-size:1.2rem; color:var(--color-text-tertiary);">/</div>
+                                    <div>
+                                        <label style="font-size:0.8em">Output Div (/P)</label>
+                                        <input type="number" id="pllP" value="2" min="1" step="1" style="width:60px;">
+                                    </div>
+
+                                    <div style="margin-left:auto; text-align:right;">
+                                        <span class="calc-label">SYSCLK (System Core)</span>
+                                        <div id="outSysClk" class="freq-badge" style="font-size:1.2rem;">168 MHz</div>
+                                    </div>
+                                </div>
+                                <div id="warnPll" class="warning-box"></div>
+                                <div id="errPll" class="error-box"></div>
+                            </div>
+                        </div>
+
+                        <!-- 3. BUS PRESCALERS -->
+                        <div class="chain-step"
+                            style="display:grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));">
+
+                            <!-- AHB -->
+                            <div class="calc-group">
+                                <span class="calc-label">AHB Prescaler (HCLK)</span>
+                                <select id="preAhb">
+                                    <option value="1" selected>/ 1</option>
+                                    <option value="2">/ 2</option>
+                                    <option value="4">/ 4</option>
+                                    <option value="8">/ 8</option>
+                                    <option value="16">/ 16</option>
+                                    <option value="64">/ 64</option>
+                                    <option value="128">/ 128</option>
+                                    <option value="256">/ 256</option>
+                                    <option value="512">/ 512</option>
+                                </select>
+                                <div
+                                    style="margin-top:8px; display:flex; justify-content:space-between; align-items:center;">
+                                    <span class="text-mono" style="font-size:0.8rem;">Bus Clock:</span>
+                                    <div id="outHclk" class="freq-badge">168 MHz</div>
+                                </div>
+                            </div>
+
+                            <!-- APB1 -->
+                            <div class="calc-group"
+                                style="border-left:1px solid var(--color-border-subtle); padding-left:16px;">
+                                <span class="calc-label">APB1 Prescaler (Low Speed)</span>
+                                <select id="preApb1">
+                                    <option value="1">/ 1</option>
+                                    <option value="2">/ 2</option>
+                                    <option value="4" selected>/ 4</option>
+                                    <option value="8">/ 8</option>
+                                    <option value="16">/ 16</option>
+                                </select>
+                                <div
+                                    style="margin-top:8px; display:flex; justify-content:space-between; align-items:center;">
+                                    <span class="text-mono" style="font-size:0.8rem;">PCLK1:</span>
+                                    <div id="outPclk1" class="freq-badge">42 MHz</div>
+                                </div>
+                                <div
+                                    style="margin-top:8px; display:flex; justify-content:space-between; align-items:center; opacity:0.8;">
+                                    <span class="text-mono" style="font-size:0.8rem;">Timer (x<span
+                                            id="mulApb1">2</span>):</span>
+                                    <div id="outTim1" class="freq-badge"
+                                        style="background:transparent; border:1px solid var(--color-signal-high);">84
+                                        MHz
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- APB2 -->
+                            <div class="calc-group"
+                                style="border-left:1px solid var(--color-border-subtle); padding-left:16px;">
+                                <span class="calc-label">APB2 Prescaler (High Speed)</span>
+                                <select id="preApb2">
+                                    <option value="1">/ 1</option>
+                                    <option value="2" selected>/ 2</option>
+                                    <option value="4">/ 4</option>
+                                    <option value="8">/ 8</option>
+                                    <option value="16">/ 16</option>
+                                </select>
+                                <div
+                                    style="margin-top:8px; display:flex; justify-content:space-between; align-items:center;">
+                                    <span class="text-mono" style="font-size:0.8rem;">PCLK2:</span>
+                                    <div id="outPclk2" class="freq-badge">84 MHz</div>
+                                </div>
+                                <div
+                                    style="margin-top:8px; display:flex; justify-content:space-between; align-items:center; opacity:0.8;">
+                                    <span class="text-mono" style="font-size:0.8rem;">Timer (x<span
+                                            id="mulApb2">2</span>):</span>
+                                    <div id="outTim2" class="freq-badge"
+                                        style="background:transparent; border:1px solid var(--color-signal-high);">168
+                                        MHz
+                                    </div>
+                                </div>
+                            </div>
+
+                        </div>
+
+                    </div>
+                </div>
+
+                <div class="notes-section" style="grid-column: 1 / -1;">
+                    <strong>Timer Logic:</strong> If APB Prescaler = 1, Timer Clock = Bus Clock. Otherwise, Timer Clock
+                    =
+                    Bus Clock × 2. <br>
+                    <strong>Validations:</strong> Generic checks for division-by-zero or negative values. Check your
+                    specific datasheet for max frequency limits (e.g. 168MHz vs 84MHz).
+                </div>
+
+            </div>
+        </div>
+    </main>
+
+    <footer>
+        <div class="footer-content">
+            <div class="footer-left">
+                <div class="footer-row">
+                    <span>&copy; 2026 <span
+                            style="font-family: 'Oxanium', sans-serif; font-weight: 600; letter-spacing: 0.1em; color: var(--color-signal-high);">EMBEDDED
+                            UNFILTERED</span> • ALL RIGHTS RESERVED</span>
+                </div>
+                <div class="footer-row">
+                    <span class="footer-item">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M12 2L2 7l10 5 10-5-10-5z" />
+                            <path d="M2 17l10 5 10-5" />
+                            <path d="M2 12l10 5 10-5" />
+                        </svg>
+                        REVISION 1.0.0
+                    </span>
+                    <span class="footer-item">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+                            <line x1="16" y1="2" x2="16" y2="6" />
+                            <line x1="8" y1="2" x2="8" y2="6" />
+                            <line x1="3" y1="10" x2="21" y2="10" />
+                        </svg>
+                        LAST UPDATED: JAN 2026
+                    </span>
+                </div>
+            </div>
+            <div class="footer-right">
+                <a href="https://www.linkedin.com/in/pradeep-kumar-ap/" target="_blank" class="footer-link">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"
+                        fill="currentColor">
+                        <path
+                            d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 22.227.792 23 1.771 23h20.451C23.2 23 24 22.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z" />
+                    </svg>
+                    Connect on LinkedIn
+                </a>
+            </div>
+        </div>
+    </footer>
+
+    <script src="../js/clock-tree.js"></script>
+</body>
+
+</html>

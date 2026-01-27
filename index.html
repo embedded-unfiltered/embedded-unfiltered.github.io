@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Embedded Unfiltered - Engineering Workbench</title>
+    <link rel="stylesheet" href="css/main.css">
+    <link href="https://fonts.googleapis.com/css2?family=Oxanium:wght@400;600;700&display=swap" rel="stylesheet">
+    <meta name="description"
+        content="Offline-capable embedded engineering tools: PWM, ADC, CRC, Buffer sizing, and more. No backend, strict privacy, professional grade.">
+    <link rel="canonical" href="https://embedded-unfiltered.github.io/">
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
+</head>
+
+<body>
+    <header>
+        <h1 class="brand-glitch">
+            <svg class="brand-logo" xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24"
+                fill="none">
+                <rect x="2" y="2" width="20" height="20" rx="4" fill="white" stroke="none" />
+                <path d="M10 9L7 12L10 15M14 9L17 12L14 15" stroke="black" stroke-width="1.5" stroke-linecap="round"
+                    stroke-linejoin="round" />
+            </svg>
+            Embedded Unfiltered
+        </h1>
+        <div style="display:flex; align-items:center; gap:16px;">
+            <div class="search-container">
+                <input type="text" id="toolSearch" placeholder="Search Tools..." autocomplete="off">
+            </div>
+            <a href="https://github.com/embedded-unfiltered" target="_blank" class="back-link">GitHub ↗</a>
+        </div>
+    </header>
+
+    <main>
+
+        <div style="margin-bottom: 40px; text-align: center;">
+            <p style="color: var(--color-text-secondary); max-width: 600px; margin: 0 auto;">
+                A collection of deterministic, offline-capable utilities for embedded systems engineers.
+                All calculations performed locally.
+            </p>
+        </div>
+
+        <h2>
+            <svg class="section-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+            </svg>
+            Featured Tools
+        </h2>
+        <div class="tool-grid">
+            <a href="tools/pwm-calc.html" class="tool-card featured">
+                <h3>PWM Calculator</h3>
+                <p>Visualize Timer ARR/CCR values with real-time waveform rendering.</p>
+            </a>
+            <a href="tools/adc-resolution.html" class="tool-card featured">
+                <h3>ADC Resolution</h3>
+                <p>Visualize step size, quantization error, and voltage mapping.</p>
+            </a>
+            <a href="tools/buffer-size.html" class="tool-card featured">
+                <h3>Buffer Optimizer</h3>
+                <p>Calculate memory requirements for circular buffers and structs.</p>
+            </a>
+        </div>
+
+        <h2>
+            <svg class="section-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="4" y="4" width="16" height="16" rx="2" ry="2"></rect>
+                <rect x="9" y="9" width="6" height="6"></rect>
+                <line x1="9" y1="1" x2="9" y2="4"></line>
+                <line x1="15" y1="1" x2="15" y2="4"></line>
+                <line x1="9" y1="20" x2="9" y2="23"></line>
+                <line x1="15" y1="20" x2="15" y2="23"></line>
+                <line x1="20" y1="9" x2="23" y2="9"></line>
+                <line x1="20" y1="14" x2="23" y2="14"></line>
+                <line x1="1" y1="9" x2="4" y2="9"></line>
+                <line x1="1" y1="14" x2="4" y2="14"></line>
+            </svg>
+            Memory & Strings
+        </h2>
+        <div class="tool-grid">
+            <a href="tools/string-length.html" class="tool-card">
+                <h3>String Length</h3>
+                <p>ASCII vs UTF-8 byte counting for UART/SPI buffers.</p>
+            </a>
+            <a href="tools/buffer-size.html" class="tool-card">
+                <h3>Buffer Size</h3>
+                <p>Compute total buffer size in bytes and KB.</p>
+            </a>
+            <a href="tools/struct-size.html" class="tool-card">
+                <h3>Struct Alignment</h3>
+                <p>visualize padding bytes and memory alignment efficiency.</p>
+            </a>
+            <a href="tools/flash-ram.html" class="tool-card">
+                <h3>Flash / RAM Usage</h3>
+                <p>Memory utilization bars and linker script planning.</p>
+            </a>
+            <a href="tools/flash-mapper.html" class="tool-card">
+                <h3>Flash Mapper</h3>
+                <p>Visual partition planner & linker script helper.</p>
+            </a>
+            <a href="tools/text-compare.html" class="tool-card">
+                <h3>Text Comparator</h3>
+                <p>Deterministic diff tool for logs and byte payloads.</p>
+            </a>
+        </div>
+
+        <h2>
+            <svg class="section-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="4" y1="9" x2="20" y2="9"></line>
+                <line x1="4" y1="15" x2="20" y2="15"></line>
+                <line x1="10" y1="3" x2="8" y2="21"></line>
+                <line x1="16" y1="3" x2="14" y2="21"></line>
+            </svg>
+            Bits & Numbers
+        </h2>
+        <div class="tool-grid">
+            <a href="tools/programmer-calculator.html" class="tool-card featured"
+                style="border-color: var(--color-signal-high);">
+                <h3>Register Inspector</h3>
+                <p>64-bit Programmer Calc with Bit Viz.</p>
+            </a>
+            <a href="tools/base-converter.html" class="tool-card">
+                <h3>Base Converter</h3>
+                <p>Dec/Hex/Bin conversion for 32-bit registers.</p>
+            </a>
+            <a href="tools/signed-unsigned.html" class="tool-card">
+                <h3>Signed / Unsigned</h3>
+                <p>Two's complement interpretation of hex values.</p>
+            </a>
+            <a href="tools/endianness.html" class="tool-card">
+                <h3>Endianness Viz</h3>
+                <p>Big-Endian vs Little-Endian memory layout.</p>
+            </a>
+            <a href="tools/bit-mask.html" class="tool-card">
+                <h3>Bit Mask Gen</h3>
+                <p>Generate masks and C macros for register fields.</p>
+            </a>
+            <a href="tools/register-field.html" class="tool-card">
+                <h3>Register Logic</h3>
+                <p>Simulate Read-Modify-Write operations.</p>
+            </a>
+        </div>
+
+        <h2>
+            <svg class="section-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
+            </svg>
+            Electrical & Analog
+        </h2>
+        <div class="tool-grid">
+            <a href="tools/voltage-divider.html" class="tool-card">
+                <h3>Voltage Divider</h3>
+                <p>Calculate resistors for signal scaling.</p>
+            </a>
+            <a href="tools/pull-up-down.html" class="tool-card">
+                <h3>Pull-Up / Down</h3>
+                <p>Sizing resistors for I2C/GPIO lines.</p>
+            </a>
+            <a href="tools/led-resistor.html" class="tool-card">
+                <h3>LED Current</h3>
+                <p>Calculate limiting resistors for status LEDs.</p>
+            </a>
+            <a href="tools/adc-resolution.html" class="tool-card">
+                <h3>ADC Calculator</h3>
+                <p>LSB voltage and count conversion.</p>
+            </a>
+            <a href="tools/power-model.html" class="tool-card">
+                <h3>Power Planner</h3>
+                <p>Battery life & duty-cycle energy model.</p>
+            </a>
+        </div>
+
+        <h2>
+            <svg class="section-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="16" y="16" width="6" height="6" rx="1" />
+                <rect x="2" y="16" width="6" height="6" rx="1" />
+                <rect x="9" y="2" width="6" height="6" rx="1" />
+                <path d="M5 16v-3a1 1 0 0 1 1-1h12a1 1 0 0 1 1 1v3" />
+                <path d="M12 12V8" />
+            </svg>
+            Protocol Payload
+        </h2>
+        <div class="tool-grid">
+            <a href="tools/crc-calculator.html" class="tool-card">
+                <h3>CRC Calculator</h3>
+                <p>CRC-8/16/32 for comms integrity check.</p>
+            </a>
+            <a href="tools/json-builder.html" class="tool-card">
+                <h3>JSON Minimizer</h3>
+                <p>Optimize JSON payloads for IoT bandwidth.</p>
+            </a>
+            <a href="tools/mqtt-calc.html" class="tool-card">
+                <h3>MQTT Size</h3>
+                <p>Estimate packet overhead for telemetry.</p>
+            </a>
+            <a href="tools/binary-packet.html" class="tool-card">
+                <h3>Binary Builder</h3>
+                <p>Construct custom binary protocol packets.</p>
+            </a>
+            <a href="tools/uuid-generator.html" class="tool-card">
+                <h3>UUID Generator</h3>
+                <p>Generate RFC-compliant v4/v7 UUIDs.</p>
+            </a>
+            <a href="tools/encoding-converter.html" class="tool-card">
+                <h3>Encodings</h3>
+                <p>Base64 / Hex / ASCII conversion.</p>
+            </a>
+            <a href="tools/baud-rate.html" class="tool-card">
+                <h3>Baud & Error</h3>
+                <p>Verify UART timing reliability.</p>
+            </a>
+        </div>
+
+        <h2>
+            <svg class="section-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"></circle>
+                <polyline points="12 6 12 12 16 14"></polyline>
+            </svg>
+            Timing & RTOS
+        </h2>
+        <div class="tool-grid">
+            <a href="tools/timer-period.html" class="tool-card">
+                <h3>Timer Calculations</h3>
+                <p>Prescaler & Period values for interrupts.</p>
+            </a>
+            <a href="tools/pwm-calc.html" class="tool-card">
+                <h3>PWM Calculator</h3>
+                <p>Frequency and Duty Cycle setup.</p>
+            </a>
+            <a href="tools/clock-tree.html" class="tool-card">
+                <h3>Clock Tree</h3>
+                <p>PLL & Prescaler Configurator.</p>
+            </a>
+            <a href="tools/rtos-tick.html" class="tool-card">
+                <h3>RTOS Ticks</h3>
+                <p>Convert milliseconds to OS ticks.</p>
+            </a>
+            <a href="tools/epoch-converter.html" class="tool-card">
+                <h3>Epoch Tool</h3>
+                <p>Unix time converter & RTC debugger.</p>
+            </a>
+            <a href="tools/watchdog.html" class="tool-card">
+                <h3>Watchdog</h3>
+                <p>Calculate WDT timeout windows.</p>
+            </a>
+        </div>
+
+        <h2>
+            <svg class="section-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path
+                    d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" />
+            </svg>
+            Control & Motion
+        </h2>
+        <div class="tool-grid">
+            <a href="tools/pid-simulator.html" class="tool-card">
+                <h3>PID Loop Simulator</h3>
+                <p>Visualize P, I, D tuning in real-time.</p>
+            </a>
+        </div>
+
+        <h2>
+            <svg class="section-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect>
+                <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path>
+            </svg>
+            Hardware & Components
+        </h2>
+        <div class="tool-grid">
+            <a href="tools/passive-decoder.html" class="tool-card">
+                <h3>Passive Component Decoder</h3>
+                <p>Decode SMD resistors, color bands, caps, and inductors.</p>
+            </a>
+        </div>
+
+        <h2>
+            <svg class="section-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                <polyline points="21 15 16 10 5 21"></polyline>
+            </svg>
+            Graphics & Display
+        </h2>
+        <div class="tool-grid">
+            <a href="tools/image-to-c.html" class="tool-card">
+                <h3>Image to C Array</h3>
+                <p>Convert bitmaps to C arrays for OLED/TFT/ePaper.</p>
+            </a>
+            <a href="tools/font-to-c.html" class="tool-card">
+                <h3>Font to C Array</h3>
+                <p>Convert TTF/OTF fonts to bitmaps for embedded struct.</p>
+            </a>
+            <a href="tools/segment-display.html" class="tool-card">
+                <h3>Segment Pattern Generator</h3>
+                <p>Interactive 7/14/16-segment display bitmask builder.</p>
+            </a>
+        </div>
+
+        <h2>
+            <svg class="section-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path
+                    d="M7 21a4 4 0 0 1-4-4V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v12a4 4 0 0 1-4 4zm0 0h12a2 2 0 0 0 2-2v-2a2 2 0 0 0-2-2h-2a2 2 0 0 0-2 2v4a2 2 0 0 0 2 2h2m-6-9l2-2l2 2m-2-2v9">
+                </path>
+            </svg>
+            Logical & Math
+        </h2>
+        <div class="tool-grid">
+            <a href="tools/logic-solver.html" class="tool-card">
+                <h3>Logic Gate Solver</h3>
+                <p>K-Map visualizer and boolean logic simplifier.</p>
+            </a>
+        </div>
+
+
+    </main>
+
+    <footer>
+        <div class="footer-content">
+            <div class="footer-left">
+                <div class="footer-row">
+                    <span>&copy; 2026 <span
+                            style="font-family: 'Orbitron', sans-serif; font-weight: 700; letter-spacing: 0.1em; color: var(--color-signal-high);">EMBEDDED
+                            UNFILTERED</span> • ALL RIGHTS RESERVED</span>
+                </div>
+                <div class="footer-row">
+                    <span class="footer-item">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M12 2L2 7l10 5 10-5-10-5z" />
+                            <path d="M2 17l10 5 10-5" />
+                            <path d="M2 12l10 5 10-5" />
+                        </svg>
+                        REVISION 1.0.0
+                    </span>
+                    <span class="footer-item">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+                            <line x1="16" y1="2" x2="16" y2="6" />
+                            <line x1="8" y1="2" x2="8" y2="6" />
+                            <line x1="3" y1="10" x2="21" y2="10" />
+                        </svg>
+                        LAST UPDATED: JAN 2026
+                    </span>
+                </div>
+            </div>
+            <div class="footer-right">
+                <a href="https://www.linkedin.com/in/pradeep-kumar-ap/" target="_blank" class="footer-link">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"
+                        fill="currentColor">
+                        <path
+                            d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 22.227.792 23 1.771 23h20.451C23.2 23 24 22.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z" />
+                    </svg>
+                    Connect on LinkedIn
+                </a>
+            </div>
+        </div>
+    </footer>
+    <script src="js/search.js"></script>
+</body>
+
+</html>

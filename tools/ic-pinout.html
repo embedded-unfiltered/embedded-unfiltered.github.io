@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive IC Pinout Viewer | Embedded Unfiltered</title>
+    <meta name="description"
+        content="Visualize IC pinouts (ATmega328P, STM32, etc.) interactively. Filter pins by function and view electical properties.">
+    <link rel="stylesheet" href="../css/main.css">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Oxanium:wght@400;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
+        rel="stylesheet">
+    <link rel="icon" type="image/svg+xml" href="../favicon.svg">
+    <style>
+        .tool-grid {
+            display: grid;
+            grid-template-columns: 320px 1fr 340px;
+            gap: var(--space-md);
+            height: calc(100vh - 140px);
+            min-height: 700px;
+        }
+
+        @media (max-width: 1200px) {
+            .tool-grid {
+                grid-template-columns: 300px 1fr;
+                height: auto;
+            }
+
+            .panel-details {
+                grid-column: 1 / -1;
+                max-height: 400px;
+            }
+        }
+
+        @media (max-width: 800px) {
+            .tool-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Panel Structure */
+        .panel {
+            background: var(--color-bg-panel);
+            border: 1px solid var(--color-border-subtle);
+            border-radius: var(--radius-md);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .panel-header {
+            padding: 16px;
+            background: rgba(255, 255, 255, 0.03);
+            border-bottom: 1px solid var(--color-border-subtle);
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .panel-content {
+            padding: 16px;
+            overflow-y: auto;
+            flex: 1;
+        }
+
+        /* SVG Visualization */
+        .svg-container {
+            flex: 1;
+            background: var(--color-bg-viz);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            cursor: grab;
+            overflow: hidden;
+        }
+
+        .svg-container:active {
+            cursor: grabbing;
+        }
+
+        /* Pin Styling (in SVG) */
+        .ic-body {
+            fill: #202020;
+            stroke: #404040;
+            stroke-width: 2px;
+        }
+
+        .ic-notch {
+            fill: #101010;
+        }
+
+        .ic-pin {
+            fill: #aaa;
+            stroke: #666;
+            stroke-width: 1px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .ic-pin:hover {
+            fill: #fff;
+        }
+
+        .ic-pin.selected {
+            fill: var(--color-signal-high);
+            stroke: #fff;
+            filter: drop-shadow(0 0 5px var(--color-signal-high));
+        }
+
+        /* Highlight Classes */
+        .ic-pin.dimmed {
+            opacity: 0.3;
+        }
+
+        .ic-pin.highlight-power {
+            fill: #ff4081 !important;
+            stroke: #ff80ab !important;
+            opacity: 1 !important;
+        }
+
+        .ic-pin.highlight-gnd {
+            fill: #444 !important;
+            stroke: #888 !important;
+            opacity: 1 !important;
+        }
+
+        /* GND usually dim or specific color */
+        .ic-pin.highlight-analog {
+            fill: #00e5ff !important;
+            stroke: #84ffff !important;
+            opacity: 1 !important;
+        }
+
+        .ic-pin.highlight-comm {
+            fill: #ff9100 !important;
+            stroke: #ffd180 !important;
+            opacity: 1 !important;
+        }
+
+        .ic-pin.highlight-pwm {
+            fill: #b388ff !important;
+            stroke: #d1c4e9 !important;
+            opacity: 1 !important;
+        }
+
+        /* Controls */
+        .filter-btn {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 12px;
+            border-radius: 4px;
+            border: 1px solid var(--color-border-subtle);
+            background: transparent;
+            color: var(--color-text-secondary);
+            cursor: pointer;
+            width: 100%;
+            margin-bottom: 6px;
+            transition: all 0.2s;
+            font-size: 0.9rem;
+        }
+
+        .filter-btn:hover {
+            background: rgba(255, 255, 255, 0.05);
+            color: var(--color-text-primary);
+        }
+
+        .filter-btn.active {
+            background: rgba(255, 255, 255, 0.1);
+            border-color: var(--color-signal-high);
+            color: var(--color-signal-high);
+        }
+
+        .filter-icon {
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            display: inline-block;
+        }
+
+        /* Pin Detail */
+        .detail-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .detail-row:last-child {
+            border-bottom: none;
+        }
+
+        .detail-label {
+            color: var(--color-text-secondary);
+            font-size: 0.9rem;
+        }
+
+        .detail-val {
+            color: var(--color-text-primary);
+            font-family: var(--font-mono);
+            font-weight: 500;
+            text-align: right;
+        }
+
+        .alt-func-tag {
+            display: inline-block;
+            background: rgba(255, 255, 255, 0.08);
+            border-radius: 4px;
+            padding: 2px 6px;
+            margin: 2px;
+            font-size: 0.8rem;
+            font-family: var(--font-mono);
+            color: var(--color-text-secondary);
+        }
+
+        .alt-func-tag.match {
+            background: rgba(0, 255, 127, 0.2);
+            color: var(--color-signal-high);
+            border: 1px solid var(--color-signal-high);
+        }
+    </style>
+</head>
+
+<body>
+    <header>
+        <h1 class="brand-glitch">
+            <svg class="brand-logo" xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24"
+                fill="none">
+                <rect x="2" y="2" width="20" height="20" rx="4" fill="white" stroke="none" />
+                <path d="M10 9L7 12L10 15M14 9L17 12L14 15" stroke="black" stroke-width="1.5" stroke-linecap="round"
+                    stroke-linejoin="round" />
+            </svg>
+            Embedded Unfiltered
+        </h1>
+        <a href="../index.html" class="back-link">Back to Home</a>
+    </header>
+
+    <main class="tool-content" style="max-width: 1800px; margin: 0 auto; width: 100%; padding: 24px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 16px;">
+            <h1>IC Pinout Viewer</h1>
+        </div>
+
+        <div class="tool-grid">
+            <!-- Left: Selector -->
+            <aside class="panel">
+                <div class="panel-header">Device Selection</div>
+                <div class="panel-content">
+                    <div class="control-group">
+                        <label class="control-label">Select IC</label>
+                        <select id="icSelector" class="input-field" style="width:100%;">
+                            <!-- JS Populated -->
+                        </select>
+                    </div>
+
+                    <div class="control-group" style="margin-top:24px;">
+                        <label class="control-label">Search / Highlight</label>
+                        <input type="text" id="pinSearch" class="input-field" placeholder="Search (e.g. UART, PC13)..."
+                            style="width:100%; margin-bottom:12px;">
+
+                        <div class="filter-group">
+                            <button class="filter-btn" data-filter="power">
+                                <span class="filter-icon" style="background:#ff4081;"></span> Power (VDD/VSS)
+                            </button>
+                            <button class="filter-btn" data-filter="analog">
+                                <span class="filter-icon" style="background:#00e5ff;"></span> Analog (ADC/DAC)
+                            </button>
+                            <button class="filter-btn" data-filter="comm">
+                                <span class="filter-icon" style="background:#ff9100;"></span> Comms (UART/I2C/SPI)
+                            </button>
+                            <button class="filter-btn" data-filter="pwm">
+                                <span class="filter-icon" style="background:#b388ff;"></span> PWM / Timer
+                            </button>
+                        </div>
+                    </div>
+
+                    <div id="icMeta"
+                        style="margin-top:auto; padding-top:20px; border-top:1px solid rgba(255,255,255,0.1);">
+                        <div class="detail-row"><span class="detail-label">Package</span><span class="detail-val"
+                                id="metaPackage">-</span></div>
+                        <div class="detail-row"><span class="detail-label">Pins</span><span class="detail-val"
+                                id="metaPins">-</span></div>
+                        <a href="#" id="metaDatasheet" target="_blank" class="btn btn-sm"
+                            style="width:100%; text-align:center; margin-top:12px;">Datasheet PDF</a>
+                    </div>
+                </div>
+            </aside>
+
+            <!-- Center: SVG -->
+            <section class="panel">
+                <div class="panel-header">
+                    <span>Package View</span>
+                    <button class="btn btn-sm" id="btnResetView">Reset Zoom</button>
+                </div>
+                <div class="svg-container" id="svgContainer">
+                    <!-- SVG Injected Here -->
+                </div>
+                <div
+                    style="padding:12px; font-size:0.8rem; color:var(--color-text-secondary); text-align:center; border-top:1px solid var(--color-border-subtle);">
+                    Scroll to Zoom • Drag to Pan • Click Pin for Details
+                </div>
+            </section>
+
+            <!-- Right: Details -->
+            <aside class="panel panel-details">
+                <div class="panel-header">Pin Details</div>
+                <div class="panel-content" id="pinDetailContent">
+                    <div style="text-align:center; color:var(--color-text-secondary); margin-top:40px;">
+                        Select a pin to view details.
+                    </div>
+                </div>
+            </aside>
+        </div>
+    </main>
+
+    <footer>
+        <div class="footer-content"><span>&copy; 2026 EMBEDDED UNFILTERED</span></div>
+    </footer>
+
+    <script src="../js/ic-data.js"></script> <!-- Data Embed -->
+    <script src="../js/ic-pinout.js"></script>
+</body>
+
+</html>
